@@ -164,7 +164,10 @@
   
   <div class="status-bar">
     <div id="mqtt-status" class="mqtt-status mqtt-disconnected">
-      MQTT: Bağlanıyor...
+      Web: Bağlanıyor...
+    </div>
+    <div id="pico-status" class="mqtt-status mqtt-disconnected">
+      Pico: Bilinmiyor
     </div>
   </div>
   
@@ -194,8 +197,11 @@
 const MQTT_BROKER = 'wss://test.mosquitto.org:8081';
 const MQTT_TOPIC_LED = 'pico/led';
 const MQTT_TOPIC_NTC = 'pico/ntc';
+const MQTT_TOPIC_STATUS = 'pico/status';
 
 let client = null;
+let picoOnlineCheckInterval = null;
+let lastPicoHeartbeat = 0;
 
 // MQTT bağlantısı
 function connectMQTT() {
@@ -221,6 +227,18 @@ function connectMQTT() {
         console.log('NTC konusuna abone olundu');
       }
     });
+    
+    client.subscribe(MQTT_TOPIC_STATUS, function(err) {
+      if (!err) {
+        console.log('Status konusuna abone olundu');
+      }
+    });
+    
+    // Pico online kontrolü başlat (her 3 saniyede bir kontrol et)
+    if (picoOnlineCheckInterval) {
+      clearInterval(picoOnlineCheckInterval);
+    }
+    picoOnlineCheckInterval = setInterval(checkPicoOnline, 3000);
   });
   
   client.on('message', function(topic, message) {
@@ -231,6 +249,11 @@ function connectMQTT() {
       updateLEDStatus(msg);
     } else if (topic === MQTT_TOPIC_NTC) {
       updateNTCTemp(msg);
+    } else if (topic === MQTT_TOPIC_STATUS) {
+      if (msg === 'online') {
+        lastPicoHeartbeat = Date.now();
+        updatePicoStatus(true);
+      }
     }
   });
   
@@ -251,11 +274,35 @@ function connectMQTT() {
 function updateMQTTStatus(connected) {
   const statusEl = document.getElementById('mqtt-status');
   if (connected) {
-    statusEl.textContent = 'MQTT: Bağlı ✅';
+    statusEl.textContent = 'Web: Bağlı ✅';
     statusEl.className = 'mqtt-status mqtt-connected';
   } else {
-    statusEl.textContent = 'MQTT: Bağlantı Yok ❌';
+    statusEl.textContent = 'Web: Bağlantı Yok ❌';
     statusEl.className = 'mqtt-status mqtt-disconnected';
+  }
+}
+
+// Pico durum güncelle
+function updatePicoStatus(online) {
+  const statusEl = document.getElementById('pico-status');
+  if (online) {
+    statusEl.textContent = 'Pico: Online ✅';
+    statusEl.className = 'mqtt-status mqtt-connected';
+  } else {
+    statusEl.textContent = 'Pico: Offline ❌';
+    statusEl.className = 'mqtt-status mqtt-disconnected';
+  }
+}
+
+// Pico online kontrolü (10 saniyeden eski heartbeat varsa offline say)
+function checkPicoOnline() {
+  const now = Date.now();
+  const timeSinceLastHeartbeat = (now - lastPicoHeartbeat) / 1000;
+  
+  if (timeSinceLastHeartbeat > 10) {
+    updatePicoStatus(false);
+  } else {
+    updatePicoStatus(true);
   }
 }
 
