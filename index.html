@@ -202,6 +202,7 @@ const MQTT_TOPIC_STATUS = 'pico/status';
 let client = null;
 let picoOnlineCheckInterval = null;
 let lastPicoHeartbeat = 0;
+let picoHeartbeatReceived = false; // İlk heartbeat alındı mı?
 
 // MQTT bağlantısı
 function connectMQTT() {
@@ -252,6 +253,7 @@ function connectMQTT() {
     } else if (topic === MQTT_TOPIC_STATUS) {
       if (msg === 'online') {
         lastPicoHeartbeat = Date.now();
+        picoHeartbeatReceived = true; // İlk heartbeat alındı
         updatePicoStatus(true);
       }
     }
@@ -312,12 +314,18 @@ function updatePicoStatus(online) {
   }
 }
 
-// Pico online kontrolü (10 saniyeden eski heartbeat varsa offline say)
+// Pico online kontrolü (5 saniyeden eski heartbeat varsa offline say)
 function checkPicoOnline() {
+  // Hiç heartbeat almadıysak, offline say
+  if (!picoHeartbeatReceived) {
+    updatePicoStatus(false);
+    return;
+  }
+  
   const now = Date.now();
   const timeSinceLastHeartbeat = (now - lastPicoHeartbeat) / 1000;
   
-  if (timeSinceLastHeartbeat > 10) {
+  if (timeSinceLastHeartbeat > 5) {
     updatePicoStatus(false);
   } else {
     updatePicoStatus(true);
@@ -349,10 +357,15 @@ function updateNTCTemp(temp) {
 // Komut gönder - RETAINED mesaj ile
 function sendCommand(topic, message) {
   // Önce Pico'nun online olup olmadığını kontrol et
+  if (!picoHeartbeatReceived) {
+    alert('Pico bağlantısı bekleniyor...');
+    return;
+  }
+  
   const now = Date.now();
   const timeSinceLastHeartbeat = (now - lastPicoHeartbeat) / 1000;
   
-  if (timeSinceLastHeartbeat > 10) {
+  if (timeSinceLastHeartbeat > 5) {
     alert('Pico offline! Lütfen Pico\'nun bağlı olduğundan emin olun.');
     return;
   }
