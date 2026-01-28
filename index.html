@@ -285,12 +285,30 @@ function updateMQTTStatus(connected) {
 // Pico durum güncelle
 function updatePicoStatus(online) {
   const statusEl = document.getElementById('pico-status');
+  const ledButtons = document.querySelectorAll('.relay-card button');
+  const ledStatus = document.getElementById('led-status');
+  
   if (online) {
     statusEl.textContent = 'Pico: Online ✅';
     statusEl.className = 'mqtt-status mqtt-connected';
+    // Butonları aktif et
+    ledButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    });
   } else {
     statusEl.textContent = 'Pico: Offline ❌';
     statusEl.className = 'mqtt-status mqtt-disconnected';
+    // Butonları devre dışı bırak
+    ledButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    });
+    // LED durumunu bilinmiyor yap
+    ledStatus.textContent = 'Durum: Bilinmiyor';
+    ledStatus.className = 'status status-unknown';
   }
 }
 
@@ -330,6 +348,15 @@ function updateNTCTemp(temp) {
 
 // Komut gönder - RETAINED mesaj ile
 function sendCommand(topic, message) {
+  // Önce Pico'nun online olup olmadığını kontrol et
+  const now = Date.now();
+  const timeSinceLastHeartbeat = (now - lastPicoHeartbeat) / 1000;
+  
+  if (timeSinceLastHeartbeat > 10) {
+    alert('Pico offline! Lütfen Pico\'nun bağlı olduğundan emin olun.');
+    return;
+  }
+  
   if (client && client.connected) {
     // retain: true parametresi eklendi - broker son durumu saklar
     client.publish(topic, message, { retain: true }, function(err) {
