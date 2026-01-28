@@ -82,6 +82,9 @@
   .status-off {
     color: #dc3545;
   }
+  .status-unknown {
+    color: #6c757d;
+  }
   button {
     font-size: 0.9em;
     margin: 0.3em;
@@ -167,8 +170,8 @@
   
   <div class="relay-card">
     <div class="relay-title">⚡ LED (GP14)</div>
-    <div id="led-status" class="status status-off">
-      Durum: Kapalı
+    <div id="led-status" class="status status-unknown">
+      Durum: Bekleniyor...
     </div>
     <button class="btn-on" onclick="sendCommand('pico/led', 'ON')">AÇ</button>
     <button class="btn-off" onclick="sendCommand('pico/led', 'OFF')">KAPAT</button>
@@ -182,6 +185,7 @@
   <div class="info">
     <p>📡 MQTT Broker: test.mosquitto.org</p>
     <p>🔄 Otomatik güncelleme aktif</p>
+    <p>💾 Kalıcı mesaj sistemi etkin</p>
   </div>
 </div>
 
@@ -277,11 +281,17 @@ function updateNTCTemp(temp) {
   }
 }
 
-// Komut gönder
+// Komut gönder - RETAINED mesaj ile
 function sendCommand(topic, message) {
   if (client && client.connected) {
-    client.publish(topic, message);
-    console.log('Gönderildi:', topic, message);
+    // retain: true parametresi eklendi - broker son durumu saklar
+    client.publish(topic, message, { retain: true }, function(err) {
+      if (err) {
+        console.error('Gönderim hatası:', err);
+      } else {
+        console.log('Gönderildi (retained):', topic, message);
+      }
+    });
   } else {
     alert('MQTT bağlantısı yok!');
   }
