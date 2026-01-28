@@ -291,7 +291,7 @@ function updatePicoStatus(online) {
   const ledStatus = document.getElementById('led-status');
   
   if (online) {
-    statusEl.textContent = 'Pico: Online ✅';
+    statusEl.textContent = 'ANKA GLC: Online ✅';
     statusEl.className = 'mqtt-status mqtt-connected';
     // Butonları aktif et
     ledButtons.forEach(btn => {
@@ -300,7 +300,7 @@ function updatePicoStatus(online) {
       btn.style.cursor = 'pointer';
     });
   } else {
-    statusEl.textContent = 'Pico: Offline ❌';
+    statusEl.textContent = 'ANKA GLC: Offline ❌';
     statusEl.className = 'mqtt-status mqtt-disconnected';
     // Butonları devre dışı bırak
     ledButtons.forEach(btn => {
@@ -358,7 +358,7 @@ function updateNTCTemp(temp) {
 function sendCommand(topic, message) {
   // Önce Pico'nun online olup olmadığını kontrol et
   if (!picoHeartbeatReceived) {
-    alert('Pico bağlantısı bekleniyor...');
+    alert('ANKA GLC bağlantısı bekleniyor...');
     return;
   }
   
@@ -366,7 +366,7 @@ function sendCommand(topic, message) {
   const timeSinceLastHeartbeat = (now - lastPicoHeartbeat) / 1000;
   
   if (timeSinceLastHeartbeat > 5) {
-    alert('Pico offline! Lütfen Pico\'nun bağlı olduğundan emin olun.');
+    alert('ANKA GLC offline! Lütfen ANKA GLC nin bağlı olduğundan emin olun.');
     return;
   }
   
@@ -392,3 +392,4 @@ window.addEventListener('load', function() {
 </body>
 
 </html>
+
